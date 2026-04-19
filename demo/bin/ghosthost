@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Demo stand-in for the real ghosthost CLI, used only by demo/terminal.tape
+# when regenerating the README GIF. Prints the same output shape the real
+# tool produces, with all values pre-baked so the recording is hermetic —
+# no real daemon, no real tailnet, no leaked state.
+
+set -euo pipefail
+
+case "${1:-}" in
+  share)
+    cat <<'EOF'
+url:        http://homepc.tail-4a9c2e.ts.net:8750/t/k3n9x2a7vf8mqrd4wj6zbfhet3/out.mp4
+id:         k3n9x2a7
+expires_at: 2026-04-20T14:32:08Z
+EOF
+    ;;
+  *)
+    echo "usage: ghosthost share <path> [--ttl 24h] [--as name]" >&2
+    exit 2
+    ;;
+esac

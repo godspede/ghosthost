@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Smoke test
+        run: go test -tags=smoke -timeout=120s ./internal/smoke/...
+        env:
+          GH_SMOKE: "1"
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
+      - name: Fuzz (short)
+        run: go test -run=^$ -fuzz=FuzzContentDispositionHeader -fuzztime=30s ./internal/share/

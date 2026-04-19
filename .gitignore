@@ -1,0 +1,18 @@
+# Go
+*.exe
+*.exe~
+*.test
+dist/
+coverage.out
+coverage.html
+
+# Editor
+.vscode/
+.idea/
+
+# Claude Code local state
+.claude/settings.local.json
+
+# OS
+Thumbs.db
+.DS_Store
