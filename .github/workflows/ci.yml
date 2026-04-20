@@ -30,6 +30,7 @@ jobs:
       - name: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
       - name: gosec
+        if: runner.os == 'Linux'   # docker-container action; Linux runners only
         uses: securego/gosec@master
         with:
           # Excluded rules (all noise-for-this-project, not security regressions):
