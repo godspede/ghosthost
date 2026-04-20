@@ -15,7 +15,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          # 'stable' picks the latest patch of the current stable minor,
+          # so stdlib security patches land automatically. go.mod's
+          # directive remains the declared minimum.
+          go-version: stable
+          check-latest: true
           cache: true
       - run: go vet ./...
       - run: go test -race ./...
