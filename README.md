@@ -60,6 +60,8 @@ Once installed, Claude will invoke `ghosthost share` on its own when you ask it 
 
 ## Install
 
+See [INSTALL.md](INSTALL.md) for the full guide with signature verification, upgrade/uninstall paths, and platform-specific notes.
+
 ```bash
 go install github.com/godspede/ghosthost/cmd/ghosthost@latest
 ```
