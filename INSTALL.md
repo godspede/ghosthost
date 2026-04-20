@@ -4,6 +4,49 @@ Install guide for `ghosthost`. Pick one of: prebuilt release binary (recommended
 
 ---
 
+## Have Claude do it for you
+
+If you already run [Claude Code](https://claude.com/claude-code) (or any similarly-capable tool-using LLM with shell access) on the machine you want to install `ghosthost` on, the fastest path is to ask it. Start a session on that machine and paste this prompt:
+
+```text
+Help me install ghosthost and its Claude skill on this machine.
+Follow the install guide and operator checklist in the repo:
+https://github.com/godspede/ghosthost
+When you're finished, share a small hello-world text file via
+ghosthost and give me the URL so I can confirm it works.
+```
+
+Claude will read `INSTALL.md`, `CLAUDE.md`, and `skills/ghosthost/SKILL.md`, pick the right install option for your OS, wire up a reachable transport (it will ask what you want to use), install the skill into your Claude skills directory, and hand you a proof-of-install URL at the end. For most readers this is faster than doing it by hand.
+
+The rest of this file is the manual path — useful if you don't use Claude, if you want to understand what each step is doing, or if you hit something Claude can't figure out.
+
+---
+
+## Recommended end-to-end flow (manual)
+
+`ghosthost` runs a small HTTP server on your machine and prints URLs that point at it. The whole system works as soon as two things are true: the binary is installed, and the machine is reachable from wherever you want to open the URLs. "Reachable" can be any of:
+
+- **Tailscale** (easiest; what `ghosthost` ships tuned for). The daemon binds to your tailnet interface, `host` auto-populates from `tailscale status --json`, and URLs only exist on your tailnet. No firewall holes, no DNS setup. Free personal tier is enough. Install from [tailscale.com/download](https://tailscale.com/download).
+- **Same LAN.** Set `bind` and `host` to the machine's LAN IP. Open the configured port on the OS firewall.
+- **Another VPN** (WireGuard, Nebula, ZeroTier, etc.). Set `bind` and `host` to the VPN-interface IP or hostname. Treat the VPN as the trust boundary — tokens are the only authentication on the wire.
+- **Public exposure** via a reverse proxy (Caddy, nginx, Cloudflare Tunnel) terminating TLS in front of the daemon. `host` is your public hostname, `bind` is whatever the proxy can reach. You can also skip the proxy and let `ghosthost` terminate TLS itself via `tls_cert` / `tls_key`. Either way, public exposure is at your own risk — a 128-bit token is the only gate.
+
+Once you've picked a transport, the flow is the same:
+
+1. **Install the binary.** Pick Option A, B, or C below, verify with `ghosthost --help`.
+2. **Initialize the config.** Run any command (e.g. `ghosthost status`). First run writes a template at `%APPDATA%\ghosthost\config.toml` (Windows) or `~/.config/ghosthost/config.toml` (Linux/macOS) and exits with a friendly error. Edit `host` and `bind` for your chosen transport. If Tailscale is installed and up, the template comes pre-filled with your MagicDNS name.
+3. **Share a file.**
+   ```bash
+   ghosthost share ./some-file.mp4
+   ```
+   You get a URL, an `id`, and an expiry. Open the URL on any device that can reach `host`:`port`.
+4. **(Optional) HTTPS.** Point `tls_cert` and `tls_key` in the config at PEM files and `ghosthost share` starts returning `https://` URLs. Any cert/key pair works; Tailscale users can produce a browser-trusted pair in one command with `tailscale cert <your-magicdns-name>`.
+5. **(Optional) Claude skill.** If you drive `ghosthost` from Claude Code, copy `skills/ghosthost/SKILL.md` into the Claude skills directory so the agent reaches for `ghosthost share` on its own. Concrete per-OS commands live in [CLAUDE.md](CLAUDE.md).
+
+Full end-to-end setup, troubleshooting, and validation checkboxes: see [CLAUDE.md](CLAUDE.md).
+
+---
+
 ## Option A — Prebuilt release binary (recommended)
 
 All artifacts live on the [v0.1.0 release page](https://github.com/godspede/ghosthost/releases/tag/v0.1.0). Each `.zip` contains a single `ghosthost` binary (`ghosthost.exe` on Windows) and is accompanied by a `.sig` file for cosign verification (see below).
