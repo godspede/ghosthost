@@ -32,6 +32,20 @@ jobs:
       - name: gosec
         uses: securego/gosec@master
         with:
-          args: ./...
+          # Excluded rules (all noise-for-this-project, not security regressions):
+          #   G304 — "file inclusion via variable": this is a file-sharing tool;
+          #          opening variable paths is the product. Path-traversal
+          #          hardening lives in internal/source (UNC / reparse-point
+          #          rejection, EvalSymlinks, regular-file check).
+          #   G115 — uintptr -> int in syscall.Flock on non-Windows: standard
+          #          Go idiom, not a real overflow risk on any supported
+          #          platform.
+          #   G117 — JSON field named "secret": intentional persistence of the
+          #          per-daemon admin bearer secret to the lockfile, protected
+          #          by ACL on Windows and 0600 mode elsewhere.
+          #   G104 — unhandled errors: remaining sites are intentional
+          #          best-effort cleanups (defer f.Close, fire-and-forget
+          #          history appends during shutdown).
+          args: -exclude=G304,G115,G117,G104 ./...
       - name: Fuzz (short)
         run: go test -run=^$ -fuzz=FuzzContentDispositionHeader -fuzztime=30s ./internal/share/

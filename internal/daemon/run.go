@@ -94,8 +94,12 @@ func Run(cfg config.Config) error {
 
 	adminHandler := touchAdminMiddleware(core, admin.NewHandler(core))
 
-	publicSrv := &http.Server{Handler: server.New(core)}
-	adminSrv := &http.Server{Handler: adminHandler}
+	// ReadHeaderTimeout defends against Slowloris-style clients holding
+	// a connection open while trickling request headers. 10s is generous
+	// for tailnet/LAN use, and our range-request video streaming sends
+	// its Range header immediately on a single request.
+	publicSrv := &http.Server{Handler: server.New(core), ReadHeaderTimeout: 10 * time.Second}
+	adminSrv := &http.Server{Handler: adminHandler, ReadHeaderTimeout: 5 * time.Second}
 
 	useTLS := cfg.TLSCert != "" && cfg.TLSKey != ""
 	if useTLS {
