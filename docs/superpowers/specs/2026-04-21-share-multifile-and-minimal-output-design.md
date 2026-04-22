@@ -85,7 +85,7 @@ Exit codes:
   - default minimal-output format (single line, trailing newline, no stderr chatter)
   - `--verbose` restores rich output
   - `info` with each of the four input forms
-  - `info` on unknown / expired / revoked returns exit 3
+  - `info` on unknown / expired / revoked returns `ExitNotFound` (exit 5)
 - `internal/admin/handler_test.go`: `TestInfoEndpoint` covering URL/path/token/id normalization and miss behavior.
 - Golden-output test for the new minimal stdout format.
 
@@ -168,7 +168,7 @@ Both are called out in release notes. The Claude skill lands updated in the same
 ## Error-handling principles
 
 - All input validation happens in the CLI, before any RPC. Failures are collected and reported together; one bad path doesn't mask others.
-- `info` miss / expired / revoked / unknown all map to exit 3 with a uniform message. No information leak about which shares *used* to exist.
+- `info` miss / expired / revoked / unknown all map to `ExitNotFound` (exit 5) with a uniform message. No information leak about which shares *used* to exist.
 - Daemon 5xx mid-batch: print what succeeded, print the error, exit non-zero.
 
 ## Non-goals

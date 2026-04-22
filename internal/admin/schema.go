@@ -15,7 +15,9 @@ type SharePayload struct {
 }
 
 // InfoPayload augments SharePayload with src_path and created_at, returned by
-// GET /info.
+// GET /info. Token is intentionally included (via embedded SharePayload) because
+// /info is on the Bearer-auth-gated admin API, same as /share and /list; callers
+// already have the secret and can obtain the token via /list anyway.
 type InfoPayload struct {
 	SharePayload
 	SrcPath   string    `json:"src_path"`
