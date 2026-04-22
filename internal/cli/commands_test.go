@@ -2,12 +2,49 @@ package cli
 
 import (
 	"bytes"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/godspede/ghosthost/internal/admin"
 )
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+func newTestOpts(t *testing.T) (*globalOpts, *bytes.Buffer, *bytes.Buffer) {
+	t.Helper()
+	var out, errb bytes.Buffer
+	o := &globalOpts{
+		stdout: &out,
+		stderr: &errb,
+		format: Human,
+		// cfg intentionally zero — tests that need daemon will short-circuit
+		// before EnsureDaemon if validation fails first.
+	}
+	return o, &out, &errb
+}
+
+func writeTempFile(t *testing.T, body string) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "f-"+randHex()+".txt")
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func randHex() string {
+	var b [4]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
+}
 
 func TestPrintShare_MinimalDefault(t *testing.T) {
 	var buf bytes.Buffer
@@ -153,5 +190,61 @@ func TestPrintShares_JSONArrayEvenForSingle(t *testing.T) {
 	s := strings.TrimSpace(buf.String())
 	if !strings.HasPrefix(s, "[") {
 		t.Errorf("single-file --json must be an array, got: %q", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// cmdShare validation tests
+// ---------------------------------------------------------------------------
+
+func TestCmdShare_NoArgs(t *testing.T) {
+	o, _, errb := newTestOpts(t)
+	code := cmdShare(context.Background(), nil, o)
+	if code != ExitUsage {
+		t.Errorf("code = %d, want ExitUsage", code)
+	}
+	if !strings.Contains(errb.String(), "usage:") {
+		t.Errorf("stderr missing usage: %q", errb.String())
+	}
+}
+
+func TestCmdShare_AsWithMultiple_Rejected(t *testing.T) {
+	o, _, errb := newTestOpts(t)
+	a := writeTempFile(t, "a")
+	b := writeTempFile(t, "b")
+	code := cmdShare(context.Background(), []string{"--as", "x", a, b}, o)
+	if code != ExitUsage {
+		t.Errorf("code = %d, want ExitUsage", code)
+	}
+	if !strings.Contains(errb.String(), "--as") {
+		t.Errorf("stderr missing --as hint: %q", errb.String())
+	}
+}
+
+func TestCmdShare_CapWithoutYes_Rejected(t *testing.T) {
+	o, _, errb := newTestOpts(t)
+	args := []string{}
+	for i := 0; i < 65; i++ {
+		args = append(args, writeTempFile(t, "x"))
+	}
+	code := cmdShare(context.Background(), args, o)
+	if code != ExitUsage {
+		t.Errorf("code = %d, want ExitUsage", code)
+	}
+	if !strings.Contains(errb.String(), "64") {
+		t.Errorf("stderr should mention the 64 cap: %q", errb.String())
+	}
+}
+
+func TestCmdShare_AtomicValidation_BadPath(t *testing.T) {
+	o, _, errb := newTestOpts(t)
+	good := writeTempFile(t, "hello")
+	bad := filepath.Join(t.TempDir(), "does-not-exist.txt")
+	code := cmdShare(context.Background(), []string{good, bad}, o)
+	if code != ExitSourceBad {
+		t.Errorf("code = %d, want ExitSourceBad (got %d)", code, code)
+	}
+	if !strings.Contains(errb.String(), "does-not-exist.txt") {
+		t.Errorf("stderr missing bad path: %q", errb.String())
 	}
 }

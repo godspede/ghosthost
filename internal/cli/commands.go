@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/godspede/ghosthost/internal/admin"
+	"github.com/godspede/ghosthost/internal/share"
 	"github.com/godspede/ghosthost/internal/source"
 )
 
@@ -23,38 +24,85 @@ var commands = map[string]subcmd{
 	"stop":    cmdStop,
 }
 
+const shareMaxBatch = 64
+
 func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 	fs := flag.NewFlagSet("share", flag.ContinueOnError)
 	fs.SetOutput(o.stderr)
 	ttl := fs.Duration("ttl", o.cfg.DefaultTTL, "time-to-live")
-	displayName := fs.String("as", "", "display/download name override")
+	displayName := fs.String("as", "", "display/download name override (requires exactly one file)")
 	verbose := fs.Bool("verbose", false, "print rich output (URL, id, expiry) instead of just the URL")
 	fs.BoolVar(verbose, "v", false, "shorthand for --verbose")
-	if err := fs.Parse(args); err != nil || fs.NArg() != 1 {
-		fmt.Fprintln(o.stderr, "usage: share <path> [--ttl 24h] [--as name] [--verbose]")
+	anon := fs.Bool("anon", false, "replace each display-name with a random slug preserving extension")
+	yes := fs.Bool("yes", false, "confirm batches larger than 64 files")
+
+	const usageLine = "usage: share <path>... [--ttl 24h] [--as name] [--anon] [--verbose] [--yes]"
+	if err := fs.Parse(args); err != nil {
+		fmt.Fprintln(o.stderr, usageLine)
 		return ExitUsage
 	}
-	path := fs.Arg(0)
-	abs, err := source.Resolve(path)
-	if err != nil {
-		fmt.Fprintln(o.stderr, "source:", err)
+	paths := fs.Args()
+	if len(paths) == 0 {
+		fmt.Fprintln(o.stderr, usageLine)
+		return ExitUsage
+	}
+	if len(paths) > 1 && *displayName != "" {
+		fmt.Fprintln(o.stderr, "--as requires exactly one file")
+		return ExitUsage
+	}
+	if len(paths) > shareMaxBatch && !*yes {
+		fmt.Fprintf(o.stderr, "refusing to create more than %d shares in one invocation; pass --yes to override\n", shareMaxBatch)
+		return ExitUsage
+	}
+
+	// Atomic pre-flight: resolve every path first; if any fail, report all, zero shares created.
+	absPaths := make([]string, len(paths))
+	var failed bool
+	for i, p := range paths {
+		abs, err := source.Resolve(p)
+		if err != nil {
+			fmt.Fprintf(o.stderr, "%s: %v\n", p, err)
+			failed = true
+			continue
+		}
+		absPaths[i] = abs
+	}
+	if failed {
 		return ExitSourceBad
 	}
+
 	c, err := EnsureDaemon(o.cfg.DataDir, o.cfgPath)
 	if err != nil {
 		fmt.Fprintln(o.stderr, "daemon:", err)
 		return ExitDaemon
 	}
-	name := *displayName
-	if name == "" {
-		name = filepath.Base(abs)
+
+	payloads := make([]admin.SharePayload, 0, len(absPaths))
+	for i, abs := range absPaths {
+		var name string
+		switch {
+		case *displayName != "" && len(absPaths) == 1:
+			name = *displayName
+		case *anon:
+			name = share.AnonDisplayName(abs)
+		default:
+			name = filepath.Base(abs)
+		}
+		p, err := c.Share(ctx, admin.ShareRequest{
+			SrcPath:     abs,
+			DisplayName: name,
+			TTLSeconds:  int64(ttl.Seconds()),
+		})
+		if err != nil {
+			// Print any URLs already issued so the user can still revoke them, then the error.
+			printShares(o.stdout, o.format, payloads, *verbose)
+			fmt.Fprintf(o.stderr, "share %s: %v\n", paths[i], err)
+			return ExitGeneric
+		}
+		payloads = append(payloads, p)
 	}
-	p, err := c.Share(ctx, admin.ShareRequest{SrcPath: abs, DisplayName: name, TTLSeconds: int64(ttl.Seconds())})
-	if err != nil {
-		fmt.Fprintln(o.stderr, "share:", err)
-		return ExitGeneric
-	}
-	printShare(o.stdout, o.format, p, *verbose)
+
+	printShares(o.stdout, o.format, payloads, *verbose)
 	return ExitOK
 }
 
