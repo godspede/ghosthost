@@ -106,7 +106,7 @@ The admin API on `127.0.0.1` stays plain HTTP regardless; TLS adds nothing on a 
 
 | Command | What it does |
 |---|---|
-| `ghosthost share <path> [--ttl 24h] [--as name]` | Create a share, print the URL (one line). Pass `--verbose` for the full id + expiry block. |
+| `ghosthost share <path>... [--ttl 24h] [--as name] [--anon] [--verbose] [--yes]` | Create one or more shares, print one URL per line. Pass `--verbose` for the full id + expiry block. |
 | `ghosthost info <arg>` | Look up an active share by full URL, URL path, bare token, or bare id. |
 | `ghosthost list` | Active shares. |
 | `ghosthost history [--limit N]` | All historical share events. |
@@ -117,7 +117,37 @@ The admin API on `127.0.0.1` stays plain HTTP regardless; TLS adds nothing on a 
 
 Add `--json` to any command for machine-readable output. The daemon auto-spawns on first use and self-exits after `idle_shutdown` (30 min default) with no active shares.
 
-Human-mode `share` prints just the URL. Pass `--verbose` for the full id + expiry block, or look up an active share later with `ghosthost info <url-or-id>`.
+Human-mode `share` prints one URL per file, in argv order. Pass `--verbose` for the full id + expiry block, or look up an active share later with `ghosthost info <url-or-id>`.
+
+### Sharing multiple files at once
+
+Pass multiple paths in a single invocation — one URL per line, argv order:
+
+```
+$ ghosthost share a.png b.png c.png
+http://homepc.tail-4a9c2e.ts.net:8750/t/abc.../a.png
+http://homepc.tail-4a9c2e.ts.net:8750/t/def.../b.png
+http://homepc.tail-4a9c2e.ts.net:8750/t/ghi.../c.png
+```
+
+- **Atomic validation** — any bad path aborts the whole batch before any share is created, and all errors are reported together.
+- `--as` requires exactly one file; using it with multiple paths is an error.
+- Batches over 64 files require `--yes` to confirm.
+
+### Anonymizing filenames
+
+Pass `--anon` to replace each URL's filename segment with a random 6-char base32 slug while preserving the file extension, so the recipient's browser handles the download correctly:
+
+```
+$ ghosthost share --anon secret-tax-return.pdf
+http://homepc.tail-4a9c2e.ts.net:8750/t/abc.../k9vm3q.pdf
+```
+
+`--anon` works for single-file and multi-file invocations alike.
+
+### Breaking change: `--json` now always emits a JSON array
+
+> **Breaking:** `ghosthost share --json` now always emits a JSON array. Single-file invocations return a one-element array. Callers parsing stdout must update to read `result[0]` (e.g. `jq '.[0].url'`).
 
 ### `info` — look up an active share
 
