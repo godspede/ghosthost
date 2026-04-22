@@ -18,9 +18,13 @@ const (
 	JSON
 )
 
-func printShare(w io.Writer, f Format, p admin.SharePayload) {
+func printShare(w io.Writer, f Format, p admin.SharePayload, verbose bool) {
 	if f == JSON {
 		_ = json.NewEncoder(w).Encode(p)
+		return
+	}
+	if !verbose {
+		fmt.Fprintln(w, p.URL)
 		return
 	}
 	fmt.Fprintf(w, "URL:     %s\n", p.URL)
