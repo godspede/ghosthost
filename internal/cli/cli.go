@@ -82,7 +82,8 @@ func Run(argv []string, stdout, stderr io.Writer) int {
 const usage = `ghosthost — temporary file sharing over HTTP
 
 Commands:
-  share <path> [--ttl 24h] [--as name]
+  share <path> [--ttl 24h] [--as name] [--verbose]
+  info <url-or-path-or-token-or-id>
   list
   history [--limit N]
   reshare <id>

@@ -59,3 +59,36 @@ func TestPrintShare_JSONUnchanged(t *testing.T) {
 		t.Error("verbose JSON output accidentally included human-block labels")
 	}
 }
+
+func TestPrintInfo_Human(t *testing.T) {
+	var buf bytes.Buffer
+	p := admin.InfoPayload{
+		SharePayload: admin.SharePayload{
+			SchemaVersion: "1",
+			ID:            "abc12345",
+			URL:           "http://h/t/tok/x",
+			ExpiresAt:     time.Unix(2_000_000_000, 0),
+		},
+		SrcPath:   "/abs/x",
+		CreatedAt: time.Unix(1_000_000_000, 0),
+	}
+	printInfo(&buf, Human, p)
+	out := buf.String()
+	for _, s := range []string{"URL:", "ID:", "Src:", "Created:", "Expires:", "abc12345", "/abs/x"} {
+		if !strings.Contains(out, s) {
+			t.Errorf("missing %q in: %q", s, out)
+		}
+	}
+}
+
+func TestPrintInfo_JSON(t *testing.T) {
+	var buf bytes.Buffer
+	p := admin.InfoPayload{
+		SharePayload: admin.SharePayload{SchemaVersion: "1", ID: "abc12345"},
+		SrcPath:      "/abs/x",
+	}
+	printInfo(&buf, JSON, p)
+	if !strings.Contains(buf.String(), `"src_path":"/abs/x"`) {
+		t.Errorf("missing src_path: %q", buf.String())
+	}
+}

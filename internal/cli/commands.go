@@ -14,6 +14,7 @@ import (
 
 var commands = map[string]subcmd{
 	"share":   cmdShare,
+	"info":    cmdInfo,
 	"list":    cmdList,
 	"history": cmdHistory,
 	"reshare": cmdReshare,
@@ -54,6 +55,25 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 		return ExitGeneric
 	}
 	printShare(o.stdout, o.format, p, *verbose)
+	return ExitOK
+}
+
+func cmdInfo(ctx context.Context, args []string, o *globalOpts) int {
+	if len(args) != 1 {
+		fmt.Fprintln(o.stderr, "usage: info <url-or-path-or-token-or-id>")
+		return ExitUsage
+	}
+	c, err := EnsureDaemon(o.cfg.DataDir, o.cfgPath)
+	if err != nil {
+		fmt.Fprintln(o.stderr, "daemon:", err)
+		return ExitDaemon
+	}
+	p, err := c.Info(ctx, args[0])
+	if err != nil {
+		fmt.Fprintln(o.stderr, err)
+		return ExitNotFound
+	}
+	printInfo(o.stdout, o.format, p)
 	return ExitOK
 }
 
