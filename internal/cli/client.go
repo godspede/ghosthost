@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/godspede/ghosthost/internal/admin"
@@ -70,6 +71,12 @@ func (c *Client) Revoke(ctx context.Context, id string) error {
 func (c *Client) Reshare(ctx context.Context, id string) (admin.SharePayload, error) {
 	var p admin.SharePayload
 	err := c.do(ctx, "POST", "/reshare", admin.IDRequest{ID: id}, &p)
+	return p, err
+}
+
+func (c *Client) Info(ctx context.Context, arg string) (admin.InfoPayload, error) {
+	var p admin.InfoPayload
+	err := c.do(ctx, "GET", "/info?q="+url.QueryEscape(arg), nil, &p)
 	return p, err
 }
 

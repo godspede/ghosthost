@@ -18,9 +18,13 @@ const (
 	JSON
 )
 
-func printShare(w io.Writer, f Format, p admin.SharePayload) {
+func printShare(w io.Writer, f Format, p admin.SharePayload, verbose bool) {
 	if f == JSON {
 		_ = json.NewEncoder(w).Encode(p)
+		return
+	}
+	if !verbose {
+		fmt.Fprintln(w, p.URL)
 		return
 	}
 	fmt.Fprintf(w, "URL:     %s\n", p.URL)
@@ -50,6 +54,19 @@ func printStatus(w io.Writer, f Format, r admin.StatusResponse) {
 	}
 	fmt.Fprintf(w, "pid=%d port=%d active=%d uptime=%ds version=%s\n",
 		r.PID, r.Port, r.ActiveCount, r.Uptime, r.Version)
+}
+
+func printInfo(w io.Writer, f Format, p admin.InfoPayload) {
+	if f == JSON {
+		_ = json.NewEncoder(w).Encode(p)
+		return
+	}
+	fmt.Fprintf(w, "URL:     %s\n", p.URL)
+	fmt.Fprintf(w, "ID:      %s\n", p.ID)
+	fmt.Fprintf(w, "Src:     %s\n", p.SrcPath)
+	fmt.Fprintf(w, "Created: %s\n", p.CreatedAt.Format(time.RFC3339))
+	fmt.Fprintf(w, "Expires: %s (%s from now)\n", p.ExpiresAt.Format(time.RFC3339),
+		time.Until(p.ExpiresAt).Round(time.Second))
 }
 
 func printOK(w io.Writer, f Format) {

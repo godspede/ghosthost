@@ -189,6 +189,39 @@ func (c *Core) Reshare(id string) (admin.SharePayload, error) {
 	return c.Share(admin.ShareRequest{SrcPath: src, DisplayName: name})
 }
 
+func (c *Core) Info(query string) (admin.InfoPayload, error) {
+	tok, id, err := admin.ParseInfoQuery(query)
+	if err != nil {
+		return admin.InfoPayload{}, err
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	now := c.clock.Now()
+	var s *share.Share
+	if tok != "" {
+		s = c.byToken[tok]
+		if s != nil && !share.EqualDigest(share.Digest(tok), s.TokenDigest) {
+			s = nil
+		}
+	} else {
+		s = c.byID[id]
+	}
+	if s == nil || !s.Active(now) {
+		return admin.InfoPayload{}, admin.ErrNotFound
+	}
+	return admin.InfoPayload{
+		SharePayload: admin.SharePayload{
+			SchemaVersion: admin.SchemaVersion,
+			ID:            s.ID,
+			Token:         s.Token,
+			URL:           c.buildURL(s.Token, s.DisplayName),
+			ExpiresAt:     s.ExpiresAt,
+		},
+		SrcPath:   s.SrcPath,
+		CreatedAt: s.CreatedAt,
+	}, nil
+}
+
 func (c *Core) List() admin.ListResponse {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

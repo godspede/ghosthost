@@ -14,6 +14,7 @@ import (
 
 var commands = map[string]subcmd{
 	"share":   cmdShare,
+	"info":    cmdInfo,
 	"list":    cmdList,
 	"history": cmdHistory,
 	"reshare": cmdReshare,
@@ -27,8 +28,10 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 	fs.SetOutput(o.stderr)
 	ttl := fs.Duration("ttl", o.cfg.DefaultTTL, "time-to-live")
 	displayName := fs.String("as", "", "display/download name override")
+	verbose := fs.Bool("verbose", false, "print rich output (URL, id, expiry) instead of just the URL")
+	fs.BoolVar(verbose, "v", false, "shorthand for --verbose")
 	if err := fs.Parse(args); err != nil || fs.NArg() != 1 {
-		fmt.Fprintln(o.stderr, "usage: share <path> [--ttl 24h] [--as name]")
+		fmt.Fprintln(o.stderr, "usage: share <path> [--ttl 24h] [--as name] [--verbose]")
 		return ExitUsage
 	}
 	path := fs.Arg(0)
@@ -51,7 +54,26 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 		fmt.Fprintln(o.stderr, "share:", err)
 		return ExitGeneric
 	}
-	printShare(o.stdout, o.format, p)
+	printShare(o.stdout, o.format, p, *verbose)
+	return ExitOK
+}
+
+func cmdInfo(ctx context.Context, args []string, o *globalOpts) int {
+	if len(args) != 1 {
+		fmt.Fprintln(o.stderr, "usage: info <url-or-path-or-token-or-id>")
+		return ExitUsage
+	}
+	c, err := EnsureDaemon(o.cfg.DataDir, o.cfgPath)
+	if err != nil {
+		fmt.Fprintln(o.stderr, "daemon:", err)
+		return ExitDaemon
+	}
+	p, err := c.Info(ctx, args[0])
+	if err != nil {
+		fmt.Fprintln(o.stderr, err)
+		return ExitNotFound
+	}
+	printInfo(o.stdout, o.format, p)
 	return ExitOK
 }
 
@@ -101,7 +123,8 @@ func cmdReshare(ctx context.Context, args []string, o *globalOpts) int {
 		fmt.Fprintln(o.stderr, err)
 		return ExitNotFound
 	}
-	printShare(o.stdout, o.format, p)
+	// reshare is always verbose — the user needs the new id to revoke it later.
+	printShare(o.stdout, o.format, p, true)
 	return ExitOK
 }
 
