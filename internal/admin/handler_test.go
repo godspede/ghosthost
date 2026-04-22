@@ -141,4 +141,15 @@ func TestInfoEndpoint(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("malformed: want 400, got %d", w.Code)
 	}
+
+	// missing q parameter -> 400 (parse error, not 404)
+	emptyCore := &fakeCore{secret: "s", infoErr: errors.New("empty query")}
+	h = NewHandler(emptyCore)
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("GET", "/info", nil) // no ?q= at all
+	r.Header.Set("Authorization", "Bearer s")
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("empty q: want 400, got %d", w.Code)
+	}
 }
