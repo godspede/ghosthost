@@ -92,3 +92,66 @@ func TestPrintInfo_JSON(t *testing.T) {
 		t.Errorf("missing src_path: %q", buf.String())
 	}
 }
+
+func TestPrintShares_DefaultMultiple(t *testing.T) {
+	var buf bytes.Buffer
+	payloads := []admin.SharePayload{
+		{URL: "http://h/t/a/one.png"},
+		{URL: "http://h/t/b/two.png"},
+		{URL: "http://h/t/c/three.png"},
+	}
+	printShares(&buf, Human, payloads, false)
+	want := "http://h/t/a/one.png\nhttp://h/t/b/two.png\nhttp://h/t/c/three.png\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
+	}
+}
+
+func TestPrintShares_DefaultSingle(t *testing.T) {
+	var buf bytes.Buffer
+	payloads := []admin.SharePayload{{URL: "http://h/t/a/x.png"}}
+	printShares(&buf, Human, payloads, false)
+	if buf.String() != "http://h/t/a/x.png\n" {
+		t.Errorf("got %q", buf.String())
+	}
+}
+
+func TestPrintShares_Verbose(t *testing.T) {
+	var buf bytes.Buffer
+	payloads := []admin.SharePayload{
+		{URL: "http://h/t/a/one.png", ID: "aaa11111", ExpiresAt: time.Unix(2_000_000_000, 0)},
+		{URL: "http://h/t/b/two.png", ID: "bbb22222", ExpiresAt: time.Unix(2_000_000_000, 0)},
+	}
+	printShares(&buf, Human, payloads, true)
+	out := buf.String()
+	if strings.Count(out, "URL:") != 2 {
+		t.Errorf("want 2 URL: lines, got: %q", out)
+	}
+	if !strings.Contains(out, "aaa11111") || !strings.Contains(out, "bbb22222") {
+		t.Errorf("missing ids: %q", out)
+	}
+}
+
+func TestPrintShares_JSONIsArray(t *testing.T) {
+	var buf bytes.Buffer
+	payloads := []admin.SharePayload{{SchemaVersion: "1", ID: "aaa11111"}}
+	printShares(&buf, JSON, payloads, false)
+	s := strings.TrimSpace(buf.String())
+	if !strings.HasPrefix(s, "[") || !strings.HasSuffix(s, "]") {
+		t.Errorf("want JSON array, got: %q", s)
+	}
+	if !strings.Contains(s, `"id":"aaa11111"`) {
+		t.Errorf("missing id in array: %q", s)
+	}
+}
+
+func TestPrintShares_JSONArrayEvenForSingle(t *testing.T) {
+	// PR2 breaking change: single-file --json is now a one-element array.
+	var buf bytes.Buffer
+	payloads := []admin.SharePayload{{SchemaVersion: "1", ID: "only"}}
+	printShares(&buf, JSON, payloads, false)
+	s := strings.TrimSpace(buf.String())
+	if !strings.HasPrefix(s, "[") {
+		t.Errorf("single-file --json must be an array, got: %q", s)
+	}
+}

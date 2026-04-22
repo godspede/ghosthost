@@ -69,6 +69,29 @@ func printInfo(w io.Writer, f Format, p admin.InfoPayload) {
 		time.Until(p.ExpiresAt).Round(time.Second))
 }
 
+func printShares(w io.Writer, f Format, payloads []admin.SharePayload, verbose bool) {
+	if f == JSON {
+		// PR2: always a JSON array, even for a single share.
+		_ = json.NewEncoder(w).Encode(payloads)
+		return
+	}
+	if !verbose {
+		for _, p := range payloads {
+			fmt.Fprintln(w, p.URL)
+		}
+		return
+	}
+	for i, p := range payloads {
+		if i > 0 {
+			fmt.Fprintln(w)
+		}
+		fmt.Fprintf(w, "URL:     %s\n", p.URL)
+		fmt.Fprintf(w, "ID:      %s\n", p.ID)
+		fmt.Fprintf(w, "Expires: %s (%s from now)\n", p.ExpiresAt.Format(time.RFC3339),
+			time.Until(p.ExpiresAt).Round(time.Second))
+	}
+}
+
 func printOK(w io.Writer, f Format) {
 	if f == JSON {
 		_ = json.NewEncoder(w).Encode(admin.OKResponse{SchemaVersion: admin.SchemaVersion, OK: true})
