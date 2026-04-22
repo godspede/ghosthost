@@ -96,3 +96,58 @@ func TestExpireDue(t *testing.T) {
 		t.Fatal("expected share expired")
 	}
 }
+
+func TestCore_Info(t *testing.T) {
+	core, dir := newCore(t)
+	p := filepath.Join(dir, "hello.txt")
+	if err := os.WriteFile(p, []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := core.Share(admin.ShareRequest{SrcPath: p, DisplayName: "hello.txt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// lookup by token
+	info, err := core.Info(got.Token)
+	if err != nil {
+		t.Fatalf("Info(token): %v", err)
+	}
+	if info.ID != got.ID {
+		t.Errorf("Info(token).ID = %q, want %q", info.ID, got.ID)
+	}
+	if info.SrcPath == "" {
+		t.Error("Info(token).SrcPath empty")
+	}
+
+	// lookup by id
+	info, err = core.Info(got.ID)
+	if err != nil {
+		t.Fatalf("Info(id): %v", err)
+	}
+	if info.URL != got.URL {
+		t.Errorf("Info(id).URL = %q, want %q", info.URL, got.URL)
+	}
+
+	// lookup by path-only URL
+	info, err = core.Info("/t/" + got.Token + "/hello.txt")
+	if err != nil {
+		t.Fatalf("Info(path): %v", err)
+	}
+	if info.ID != got.ID {
+		t.Errorf("Info(path).ID = %q, want %q", info.ID, got.ID)
+	}
+
+	// unknown id
+	if _, err := core.Info("zzzzzzzz"); err == nil {
+		t.Error("Info(unknown id) should error")
+	}
+
+	// revoked -> not found
+	if err := core.Revoke(got.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := core.Info(got.ID); err == nil {
+		t.Error("Info on revoked id should error")
+	}
+}

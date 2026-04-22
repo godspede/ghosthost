@@ -24,6 +24,12 @@ func (f *fakeCore) Revoke(id string) error { return nil }
 func (f *fakeCore) Reshare(id string) (SharePayload, error) {
 	return SharePayload{SchemaVersion: SchemaVersion, ID: id}, nil
 }
+func (f *fakeCore) Info(query string) (InfoPayload, error) {
+	return InfoPayload{
+		SharePayload: SharePayload{SchemaVersion: SchemaVersion, ID: "i", Token: "t", URL: "u"},
+		SrcPath:      "/abs/path",
+	}, nil
+}
 func (f *fakeCore) List() ListResponse     { return ListResponse{SchemaVersion: SchemaVersion} }
 func (f *fakeCore) Status() StatusResponse { return StatusResponse{SchemaVersion: SchemaVersion, PID: 1} }
 func (f *fakeCore) Stop()                  {}

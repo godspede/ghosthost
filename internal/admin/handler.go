@@ -14,6 +14,7 @@ type Core interface {
 	Share(ShareRequest) (SharePayload, error)
 	Revoke(id string) error
 	Reshare(id string) (SharePayload, error)
+	Info(query string) (InfoPayload, error)
 	List() ListResponse
 	Status() StatusResponse
 	Stop()
