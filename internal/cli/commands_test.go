@@ -248,3 +248,45 @@ func TestCmdShare_AtomicValidation_BadPath(t *testing.T) {
 		t.Errorf("stderr missing bad path: %q", errb.String())
 	}
 }
+
+// ---------------------------------------------------------------------------
+// selectDisplayName unit tests
+// ---------------------------------------------------------------------------
+
+func TestSelectDisplayName_AsBeatsAnonWhenSingle(t *testing.T) {
+	got := selectDisplayName("/abs/secret.pdf", "my-name", true, 1)
+	if got != "my-name" {
+		t.Errorf("got %q, want %q (--as must win over --anon when N==1)", got, "my-name")
+	}
+}
+
+func TestSelectDisplayName_AnonWhenNoAs(t *testing.T) {
+	got := selectDisplayName("/abs/secret.PDF", "", true, 3)
+	// Expect lowercased .pdf extension; slug is random, so check shape.
+	if !strings.HasSuffix(got, ".pdf") {
+		t.Errorf("got %q, want suffix .pdf", got)
+	}
+	if got == "secret.PDF" || got == "secret.pdf" {
+		t.Errorf("got %q, expected a random slug, not the original filename", got)
+	}
+}
+
+func TestSelectDisplayName_BaseFallback(t *testing.T) {
+	got := selectDisplayName("/abs/dir/report.pdf", "", false, 1)
+	if got != "report.pdf" {
+		t.Errorf("got %q, want %q", got, "report.pdf")
+	}
+}
+
+func TestSelectDisplayName_AsIgnoredWhenMultiple(t *testing.T) {
+	// The CLI layer rejects --as when N>1 before ever reaching selectDisplayName,
+	// but confirm the pure function's policy: --as requires total == 1.
+	got := selectDisplayName("/abs/report.pdf", "override", false, 3)
+	if got != "report.pdf" {
+		t.Errorf("got %q, want %q (--as should not apply when total > 1)", got, "report.pdf")
+	}
+}
+
+func TestCmdShare_MultipleFiles_HappyPath(t *testing.T) {
+	t.Skip("no bootstrap override available; happy-path multi-file behavior is covered by manual smoke test in PR plan Task 6")
+}

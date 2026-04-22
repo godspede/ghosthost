@@ -34,7 +34,7 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 	verbose := fs.Bool("verbose", false, "print rich output (URL, id, expiry) instead of just the URL")
 	fs.BoolVar(verbose, "v", false, "shorthand for --verbose")
 	anon := fs.Bool("anon", false, "replace each display-name with a random slug preserving extension")
-	yes := fs.Bool("yes", false, "confirm batches larger than 64 files")
+	yes := fs.Bool("yes", false, fmt.Sprintf("confirm batches larger than %d files", shareMaxBatch))
 
 	const usageLine = "usage: share <path>... [--ttl 24h] [--as name] [--anon] [--verbose] [--yes]"
 	if err := fs.Parse(args); err != nil {
@@ -79,15 +79,7 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 
 	payloads := make([]admin.SharePayload, 0, len(absPaths))
 	for i, abs := range absPaths {
-		var name string
-		switch {
-		case *displayName != "" && len(absPaths) == 1:
-			name = *displayName
-		case *anon:
-			name = share.AnonDisplayName(abs)
-		default:
-			name = filepath.Base(abs)
-		}
+		name := selectDisplayName(abs, *displayName, *anon, len(absPaths))
 		p, err := c.Share(ctx, admin.ShareRequest{
 			SrcPath:     abs,
 			DisplayName: name,
@@ -218,4 +210,19 @@ func cmdStop(ctx context.Context, args []string, o *globalOpts) int {
 	_ = c.Stop(ctx)
 	printOK(o.stdout, o.format)
 	return ExitOK
+}
+
+// selectDisplayName picks the display name for one file in a batch of size total.
+// Priority: explicit --as (only valid when total == 1) > --anon slug > filepath.Base.
+// total, displayNameFlag, and anon are the command-line inputs; abs is the
+// already-resolved absolute path.
+func selectDisplayName(abs, displayNameFlag string, anon bool, total int) string {
+	switch {
+	case displayNameFlag != "" && total == 1:
+		return displayNameFlag
+	case anon:
+		return share.AnonDisplayName(abs)
+	default:
+		return filepath.Base(abs)
+	}
 }
