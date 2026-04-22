@@ -22,6 +22,7 @@ func (stubCore) Reshare(id string) (admin.SharePayload, error) {
 func (stubCore) List() admin.ListResponse     { return admin.ListResponse{SchemaVersion: "1"} }
 func (stubCore) Status() admin.StatusResponse { return admin.StatusResponse{SchemaVersion: "1"} }
 func (stubCore) Stop()                        {}
+func (stubCore) Info(query string) (admin.InfoPayload, error) { return admin.InfoPayload{}, nil }
 
 func TestClient_Share(t *testing.T) {
 	srv := httptest.NewServer(admin.NewHandler(stubCore{}))
