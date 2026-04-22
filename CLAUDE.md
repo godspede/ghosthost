@@ -128,7 +128,7 @@ printf 'hello from ghosthost\n' > "$HELLO_PATH"
 ghosthost --json share "$HELLO_PATH"
 ```
 
-Expected output (JSON, one line): a `schema_version`, `id`, `token`, `url`, and `expires_at`.
+Expected output (JSON, one line): a JSON array with a single element containing `schema_version`, `id`, `token`, `url`, and `expires_at`.
 
 **Human-mode output (no `--json`):** `ghosthost share <path>` prints one line — the URL. Nothing else. Pass `--verbose` for the old rich block, or run `ghosthost info <url-or-id>` to retrieve metadata for an active share.
 
@@ -156,6 +156,8 @@ Render it like this (the literal template — adapt the values):
 
 Verification: open the URL in a browser on another device (or `curl` it locally). You should see `hello from ghosthost`. That's the install confirmed working end to end — binary, daemon, config, network path, and Tailscale (or whatever transport you picked) are all wired up.
 
+**Multiple files:** `ghosthost share a.png b.png c.png` creates three shares in one invocation and prints one URL per line. Pass `--anon` to replace each URL's filename segment with a random slug while preserving the extension.
+
 Leave the share active for manual inspection, then `ghosthost revoke <id>` when done.
 
 ## Alternative transports
@@ -179,7 +181,7 @@ For operators not using Tailscale:
 - [ ] `ghosthost --help` runs.
 - [ ] `tailscale status` shows the host online (if using Tailscale).
 - [ ] Config file exists at the expected path; `host` and `bind` are set.
-- [ ] `ghosthost share <path>` prints one line: the URL. (`--verbose` adds id + expiry; `--json` returns a `SharePayload` object.)
+- [ ] `ghosthost share <path>` prints one line: the URL. (`--verbose` adds id + expiry; `--json` returns a JSON array — one element per file.)
 - [ ] `curl -I <url>` from a second device returns `200 OK`.
 - [ ] `ghosthost list` shows the share; `ghosthost history` shows the creation event.
 - [ ] `ghosthost revoke <id>` makes the URL return `404`.

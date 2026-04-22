@@ -36,11 +36,13 @@ Do **not** invoke `ghosthost share` when:
 
 1. Run:
 
-       ghosthost --json share <absolute-path> [--ttl 24h] [--as <name>]
+       ghosthost --json share <absolute-path>... [--ttl 24h] [--as <name>] [--anon]
 
-2. Parse the JSON response. Required fields:
+2. Parse the JSON response. `--json` always emits a JSON array — one element per file. Required fields per element:
 
-       { "schema_version": "1", "id": "...", "url": "...", "expires_at": "..." }
+       [{ "schema_version": "1", "id": "...", "url": "...", "expires_at": "..." }]
+
+   For a single file use `result[0].url`. For multiple files iterate the array.
 
 3. Present the URL to the user as a clickable link, with the id and
    expiry timestamp. See "Presenting the URL" below — this matters.
@@ -55,12 +57,32 @@ authoritative validator.
 
 ## Reading share output
 
-The `ghosthost share` command in human mode prints exactly one line: the share URL. If you need the id (for later `revoke`) or the expiry:
+The `ghosthost share` command in human mode prints one URL per file, in argv order. If you need the id (for later `revoke`) or the expiry:
 
-- Pass `--json` to get the structured `SharePayload` (with `id`, `expires_at`, `url`, etc.) — this is what the "How to use" steps above do.
+- Pass `--json` to get structured output. **`--json` always emits a JSON array** — even for a single file. Parse `result[0].url` for the URL of a single share; iterate the array for multi-file invocations. Example: `jq '.[0].url'`.
 - Or call `ghosthost info <arg>` later, where `<arg>` can be the full URL, the URL path (`/t/<token>/<name>`), the bare token, or the bare id. `info` returns the same metadata as `--verbose`-mode share.
 
 `info` returns an error on expired, revoked, or unknown shares — it only resolves currently-live shares.
+
+## Multiple local files
+
+When the user wants to share several files at once, pass them all in a single `ghosthost share` invocation:
+
+    ghosthost share file1.png file2.png file3.png
+
+This avoids multiple permission prompts. Each file gets its own URL on its own line of stdout. `--json` returns a JSON array with one element per file.
+
+- `--as` requires exactly one file; omit it when sharing multiple files.
+- Batches over 64 files require `--yes`.
+- Validation is atomic: if any path is bad, no shares are created and all errors are reported.
+
+## Anonymize filenames with `--anon`
+
+Pass `--anon` when the source filename might be sensitive. The extension is preserved so the recipient's browser handles the download correctly; only the filename is replaced with a random 6-char slug:
+
+    ghosthost --json share --anon secret-report.pdf
+
+`--anon` works for single-file and multi-file invocations alike.
 
 ## Presenting the URL
 
