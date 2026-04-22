@@ -37,13 +37,13 @@ Accepts any of:
 - Full URL: `http://host:port/t/<token>/<name>`
 - Path-only URL: `/t/<token>/<name>` or `t/<token>/<name>`
 - Bare token (26-char base32)
-- Bare id (8-char base32; prefix match consistent with `revoke`)
+- Bare id (8-char base32; exact match, consistent with `revoke`)
 
 Normalization rules (in order):
 
 1. If input parses as a URL with a non-empty host, extract `Path`. Otherwise treat input as path-or-identifier.
-2. If the resulting string matches `^/?t/([A-Z2-7]{26})(/.*)?$`, extract the token.
-3. Else if the string is 26 chars of base32, treat as a bare token.
+2. If the resulting string matches `^/?t/([a-z2-7]{26})(/.*)?$`, extract the token.
+3. Else if the string is 26 chars of lowercase base32 (uppercase rejected), treat as a bare token.
 4. Else treat as an id / id-prefix and resolve against `byID`.
 5. No match → error.
 

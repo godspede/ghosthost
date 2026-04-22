@@ -26,6 +26,7 @@ func TestParseInfoQuery(t *testing.T) {
 		{"URL without /t/", "http://host/other/thing", "", "", true},
 		{"token wrong length", "abc", "", "", true},
 		{"token wrong chars", "1!!!aaaabbbbccccddddeeefff", "", "", true},
+		{"uppercase token rejected", "AAAABBBBCCCCDDDDEEEEFFFFGG", "", "", true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

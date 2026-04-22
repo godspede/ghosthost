@@ -8,10 +8,14 @@ import (
 	"strings"
 )
 
-// Token is 26 chars of lowercase base32 (RFC 4648 a-z2-7, no padding).
+// Tokens and IDs are always generated in lowercase (see internal/share/token.go).
+// Uppercase input is rejected — we do not case-fold, because downstream lookup
+// compares the raw string against the lowercase map key.
+
+// tokenRe matches a 26-char lowercase base32 token (RFC 4648 a-z2-7, no padding).
 var tokenRe = regexp.MustCompile(`^[a-z2-7]{26}$`)
 
-// ID is 8 chars of lowercase base32.
+// idRe matches an 8-char lowercase base32 id.
 var idRe = regexp.MustCompile(`^[a-z2-7]{8}$`)
 
 // pathRe captures the token from /t/<token> or /t/<token>/<name>.
