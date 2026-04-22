@@ -22,7 +22,25 @@ func (stubCore) Reshare(id string) (admin.SharePayload, error) {
 func (stubCore) List() admin.ListResponse     { return admin.ListResponse{SchemaVersion: "1"} }
 func (stubCore) Status() admin.StatusResponse { return admin.StatusResponse{SchemaVersion: "1"} }
 func (stubCore) Stop()                        {}
-func (stubCore) Info(query string) (admin.InfoPayload, error) { return admin.InfoPayload{}, nil }
+func (stubCore) Info(query string) (admin.InfoPayload, error) {
+	return admin.InfoPayload{
+		SharePayload: admin.SharePayload{SchemaVersion: "1", ID: "infoid", Token: "tok", URL: "u"},
+		SrcPath:      "/abs/path",
+	}, nil
+}
+
+func TestClient_Info(t *testing.T) {
+	srv := httptest.NewServer(admin.NewHandler(stubCore{}))
+	defer srv.Close()
+	c := &Client{BaseURL: srv.URL, Secret: "s", HTTP: srv.Client()}
+	got, err := c.Info(context.Background(), "abc/?&=+") // include chars that must be escaped
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "infoid" || got.SrcPath != "/abs/path" {
+		t.Errorf("got %+v", got)
+	}
+}
 
 func TestClient_Share(t *testing.T) {
 	srv := httptest.NewServer(admin.NewHandler(stubCore{}))
