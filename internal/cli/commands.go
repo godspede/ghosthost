@@ -87,7 +87,11 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 		})
 		if err != nil {
 			// Print any URLs already issued so the user can still revoke them, then the error.
-			printShares(o.stdout, o.format, payloads, *verbose)
+			// Skip printing when payloads is empty — avoids emitting `[]` on first-file failure
+			// in JSON mode.
+			if len(payloads) > 0 {
+				printShares(o.stdout, o.format, payloads, *verbose)
+			}
 			fmt.Fprintf(o.stderr, "share %s: %v\n", paths[i], err)
 			return ExitGeneric
 		}

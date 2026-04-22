@@ -290,3 +290,22 @@ func TestSelectDisplayName_AsIgnoredWhenMultiple(t *testing.T) {
 func TestCmdShare_MultipleFiles_HappyPath(t *testing.T) {
 	t.Skip("no bootstrap override available; happy-path multi-file behavior is covered by manual smoke test in PR plan Task 6")
 }
+
+func TestCmdShare_CapWithYes_BypassesLimit(t *testing.T) {
+	o, _, errb := newTestOpts(t)
+	args := []string{"--yes"}
+	for i := 0; i < 65; i++ {
+		args = append(args, writeTempFile(t, "x"))
+	}
+	code := cmdShare(context.Background(), args, o)
+	// With --yes, the cap check is bypassed. Execution reaches EnsureDaemon,
+	// which fails because no daemon is running. That surfaces as ExitDaemon (4),
+	// NOT ExitUsage (2). Any non-ExitUsage code proves the cap wasn't the block.
+	if code == ExitUsage {
+		t.Errorf("--yes should bypass cap; got ExitUsage, stderr=%q", errb.String())
+	}
+	// Sanity: the error, whatever it is, should not mention the cap.
+	if strings.Contains(errb.String(), "64") {
+		t.Errorf("stderr unexpectedly mentions cap: %q", errb.String())
+	}
+}
