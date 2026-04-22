@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// ErrNotFound indicates that a query parsed successfully but no matching
+// share exists (or the share is revoked/expired). Handlers map this to 404.
+// Parse failures, by contrast, should surface as 400.
+var ErrNotFound = errors.New("not found")
+
 // Tokens and IDs are always generated in lowercase (see internal/share/token.go).
 // Uppercase input is rejected — we do not case-fold, because downstream lookup
 // compares the raw string against the lowercase map key.

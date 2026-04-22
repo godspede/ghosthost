@@ -207,7 +207,7 @@ func (c *Core) Info(query string) (admin.InfoPayload, error) {
 		s = c.byID[id]
 	}
 	if s == nil || !s.Active(now) {
-		return admin.InfoPayload{}, errors.New("not found")
+		return admin.InfoPayload{}, admin.ErrNotFound
 	}
 	return admin.InfoPayload{
 		SharePayload: admin.SharePayload{

@@ -2,6 +2,7 @@
 package daemon
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -138,16 +139,34 @@ func TestCore_Info(t *testing.T) {
 		t.Errorf("Info(path).ID = %q, want %q", info.ID, got.ID)
 	}
 
+	// expired: clock moved past ExpiresAt before ExpireDue runs.
+	// We need a separate share because the first one will be revoked below.
+	p2 := filepath.Join(dir, "hello2.txt")
+	if err := os.WriteFile(p2, []byte("hi"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got2, err := core.Share(admin.ShareRequest{SrcPath: p2, DisplayName: "hello2.txt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fc := core.clock.(*fakeClock)
+	fc.t = got2.ExpiresAt.Add(time.Second)
+	if _, err := core.Info(got2.ID); !errors.Is(err, admin.ErrNotFound) {
+		t.Errorf("Info on expired share: got %v, want admin.ErrNotFound", err)
+	}
+	// Restore the clock so subsequent assertions in this test (if any) aren't affected.
+	fc.t = time.Unix(1700000000, 0)
+
 	// unknown id
-	if _, err := core.Info("zzzzzzzz"); err == nil {
-		t.Error("Info(unknown id) should error")
+	if _, err := core.Info("zzzzzzzz"); !errors.Is(err, admin.ErrNotFound) {
+		t.Errorf("Info(unknown id): got %v, want admin.ErrNotFound", err)
 	}
 
 	// revoked -> not found
 	if err := core.Revoke(got.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := core.Info(got.ID); err == nil {
-		t.Error("Info on revoked id should error")
+	if _, err := core.Info(got.ID); !errors.Is(err, admin.ErrNotFound) {
+		t.Errorf("Info on revoked id: got %v, want admin.ErrNotFound", err)
 	}
 }
