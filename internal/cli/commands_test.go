@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -293,19 +294,24 @@ func TestCmdShare_MultipleFiles_HappyPath(t *testing.T) {
 
 func TestCmdShare_CapWithYes_BypassesLimit(t *testing.T) {
 	o, _, errb := newTestOpts(t)
+	// Use 65 NONEXISTENT paths so atomic pre-flight rejects them with
+	// ExitSourceBad before cmdShare reaches EnsureDaemon. If the cap was
+	// still active (i.e. --yes was ignored), we'd get ExitUsage instead.
+	// This keeps the test hermetic — no daemon spawn, no Windows test-binary
+	// lock, which previously broke CI cleanup on windows-latest.
+	dir := t.TempDir()
 	args := []string{"--yes"}
 	for i := 0; i < 65; i++ {
-		args = append(args, writeTempFile(t, "x"))
+		args = append(args, filepath.Join(dir, fmt.Sprintf("nope-%d.txt", i)))
 	}
 	code := cmdShare(context.Background(), args, o)
-	// With --yes, the cap check is bypassed. Execution reaches EnsureDaemon,
-	// which fails because no daemon is running. That surfaces as ExitDaemon (4),
-	// NOT ExitUsage (2). Any non-ExitUsage code proves the cap wasn't the block.
 	if code == ExitUsage {
 		t.Errorf("--yes should bypass cap; got ExitUsage, stderr=%q", errb.String())
 	}
-	// Sanity: the error, whatever it is, should not mention the cap.
-	if strings.Contains(errb.String(), "64") {
-		t.Errorf("stderr unexpectedly mentions cap: %q", errb.String())
+	// Sanity: the error must not be the cap message itself. Match on the
+	// exact phrase instead of just "64" — file paths in the error contain
+	// "nope-64.txt" which would otherwise false-positive.
+	if strings.Contains(errb.String(), "refusing to create more than") {
+		t.Errorf("stderr unexpectedly contains cap rejection: %q", errb.String())
 	}
 }
