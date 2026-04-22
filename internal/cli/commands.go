@@ -103,6 +103,7 @@ func cmdReshare(ctx context.Context, args []string, o *globalOpts) int {
 		fmt.Fprintln(o.stderr, err)
 		return ExitNotFound
 	}
+	// reshare is always verbose — the user needs the new id to revoke it later.
 	printShare(o.stdout, o.format, p, true)
 	return ExitOK
 }

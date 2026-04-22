@@ -37,14 +37,25 @@ func TestPrintShare_Verbose(t *testing.T) {
 }
 
 func TestPrintShare_JSONUnchanged(t *testing.T) {
-	var buf bytes.Buffer
 	p := admin.SharePayload{SchemaVersion: "1", ID: "abc12345", Token: "tok", URL: "u"}
+
+	// verbose=false, JSON format → bare object, no array
+	var buf bytes.Buffer
 	printShare(&buf, JSON, p, false)
 	if !strings.Contains(buf.String(), `"id":"abc12345"`) {
 		t.Errorf("JSON output missing id: %q", buf.String())
 	}
-	// JSON output is a bare object in PR1 (not an array yet).
 	if strings.HasPrefix(strings.TrimSpace(buf.String()), "[") {
 		t.Errorf("PR1 JSON should be a bare object, got array: %q", buf.String())
+	}
+
+	// verbose=true, JSON format → verbose flag must be ignored; same JSON output
+	var bufV bytes.Buffer
+	printShare(&bufV, JSON, p, true)
+	if bufV.String() != buf.String() {
+		t.Errorf("verbose should not affect JSON output.\nverbose=false: %q\nverbose=true:  %q", buf.String(), bufV.String())
+	}
+	if strings.Contains(bufV.String(), "URL:") {
+		t.Error("verbose JSON output accidentally included human-block labels")
 	}
 }
