@@ -14,6 +14,14 @@ type SharePayload struct {
 	ExpiresAt     time.Time `json:"expires_at"`
 }
 
+// InfoPayload augments SharePayload with src_path and created_at, returned by
+// GET /info.
+type InfoPayload struct {
+	SharePayload
+	SrcPath   string    `json:"src_path"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ListEntry struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
