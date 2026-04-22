@@ -53,6 +53,15 @@ code 6 with a clear message if anything is wrong. Pre-checks waste tokens
 and can trigger unnecessary OS permission prompts; the CLI is the
 authoritative validator.
 
+## Reading share output
+
+The `ghosthost share` command in human mode prints exactly one line: the share URL. If you need the id (for later `revoke`) or the expiry:
+
+- Pass `--json` to get the structured `SharePayload` (with `id`, `expires_at`, `url`, etc.) — this is what the "How to use" steps above do.
+- Or call `ghosthost info <arg>` later, where `<arg>` can be the full URL, the URL path (`/t/<token>/<name>`), the bare token, or the bare id. `info` returns the same metadata as `--verbose`-mode share.
+
+`info` returns an error on expired, revoked, or unknown shares — it only resolves currently-live shares.
+
 ## Presenting the URL
 
 The whole point of this tool is handing the user a link they can tap. If
@@ -82,6 +91,7 @@ meant to be copied, not clicked.
 ## Other commands
 
 - `ghosthost --json list` — currently active shares.
+- `ghosthost --json info <arg>` — look up a live share by full URL, URL path, bare token, or bare id.
 - `ghosthost --json reshare <id>` — new URL for a previously shared file.
 - `ghosthost revoke <id>` — stop sharing immediately.
 - `ghosthost status` — check daemon liveness.

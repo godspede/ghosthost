@@ -72,7 +72,7 @@ Optional HTTPS: set `tls_cert` and `tls_key` to PEM file paths to make the publi
 ghosthost share ./some-file.png
 ```
 
-Expect a `url`, `id`, and `expires_at`. From another device on the tailnet:
+Expect one line: the URL. (Pass `--verbose` to also see the id and expiry, or run `ghosthost info <url>` afterwards.) From another device on the tailnet:
 
 ```bash
 curl -I "https://homepc.tail-4a9c2e.ts.net:8750/s/<token>/some-file.png"
@@ -130,6 +130,8 @@ ghosthost --json share "$HELLO_PATH"
 
 Expected output (JSON, one line): a `schema_version`, `id`, `token`, `url`, and `expires_at`.
 
+**Human-mode output (no `--json`):** `ghosthost share <path>` prints one line — the URL. Nothing else. Pass `--verbose` for the old rich block, or run `ghosthost info <url-or-id>` to retrieve metadata for an active share.
+
 Report the result back to the user in a format that keeps the URL **clickable in the chat UI**. Most chat UIs (including Claude Code) auto-link bare URLs in prose but NOT inside fenced code blocks. So:
 
 - The **URL** goes on its own line, **outside** any ``` fence, as a bare `http://...` string.
@@ -177,7 +179,7 @@ For operators not using Tailscale:
 - [ ] `ghosthost --help` runs.
 - [ ] `tailscale status` shows the host online (if using Tailscale).
 - [ ] Config file exists at the expected path; `host` and `bind` are set.
-- [ ] `ghosthost share <path>` returns a `url`, `id`, and `expires_at`.
+- [ ] `ghosthost share <path>` prints one line: the URL. (`--verbose` adds id + expiry; `--json` returns a `SharePayload` object.)
 - [ ] `curl -I <url>` from a second device returns `200 OK`.
 - [ ] `ghosthost list` shows the share; `ghosthost history` shows the creation event.
 - [ ] `ghosthost revoke <id>` makes the URL return `404`.

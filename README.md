@@ -7,9 +7,7 @@ You're driving Claude on your home box through a `remote-control` Claude session
 ```text
 you: let me see it
 claude: ghosthost share ./renders/out.mp4
-        url:        http://homepc.tail-4a9c2e.ts.net:8750/t/8f2b1c04e7a6/out.mp4
-        id:         8f2b1c04e7a6
-        expires_at: 2026-04-20T14:32:08Z
+        http://homepc.tail-4a9c2e.ts.net:8750/t/8f2b1c04e7a6/out.mp4
 ```
 
 You tap the link on your phone. The video plays in the browser. Twenty-four hours later it stops working.
@@ -108,7 +106,8 @@ The admin API on `127.0.0.1` stays plain HTTP regardless; TLS adds nothing on a 
 
 | Command | What it does |
 |---|---|
-| `ghosthost share <path> [--ttl 24h] [--as name]` | Create a share, print the URL. |
+| `ghosthost share <path> [--ttl 24h] [--as name]` | Create a share, print the URL (one line). Pass `--verbose` for the full id + expiry block. |
+| `ghosthost info <arg>` | Look up an active share by full URL, URL path, bare token, or bare id. |
 | `ghosthost list` | Active shares. |
 | `ghosthost history [--limit N]` | All historical share events. |
 | `ghosthost reshare <id>` | Issue a fresh URL for a prior share. |
@@ -117,6 +116,23 @@ The admin API on `127.0.0.1` stays plain HTTP regardless; TLS adds nothing on a 
 | `ghosthost stop` | Shut the daemon down (it will auto-spawn again on next use). |
 
 Add `--json` to any command for machine-readable output. The daemon auto-spawns on first use and self-exits after `idle_shutdown` (30 min default) with no active shares.
+
+Human-mode `share` prints just the URL. Pass `--verbose` for the full id + expiry block, or look up an active share later with `ghosthost info <url-or-id>`.
+
+### `info` — look up an active share
+
+`ghosthost info` retrieves metadata for any currently-live share. Pass any of: the full URL, just the URL path (`/t/<token>/<name>` or `t/<token>/<name>`), the bare token, or the bare id.
+
+```
+$ ghosthost info http://homepc.tail-4a9c2e.ts.net:8750/t/k3n.../hello.txt
+URL:     http://homepc.tail-4a9c2e.ts.net:8750/t/k3n.../hello.txt
+ID:      8f2b1c04
+Src:     /home/you/hello.txt
+Created: 2026-04-21T13:14:15Z
+Expires: 2026-04-22T13:14:15Z (23h59m59s from now)
+```
+
+Expired, revoked, or unknown shares exit with code 5 and a "not found" message — no information about which tokens ever existed is disclosed.
 
 ## Transport options
 
