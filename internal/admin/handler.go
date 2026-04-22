@@ -4,6 +4,7 @@ package admin
 import (
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 )
@@ -30,6 +31,7 @@ func NewHandler(c Core) http.Handler {
 	mux.HandleFunc("/list", h.auth(h.list))
 	mux.HandleFunc("/status", h.auth(h.status))
 	mux.HandleFunc("/stop", h.auth(h.stop))
+	mux.HandleFunc("/info", h.auth(h.info))
 	return mux
 }
 
@@ -105,4 +107,18 @@ func (h *handler) status(w http.ResponseWriter, r *http.Request) {
 func (h *handler) stop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, OKResponse{SchemaVersion: SchemaVersion, OK: true})
 	go h.core.Stop()
+}
+
+func (h *handler) info(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	p, err := h.core.Info(q)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
 }
