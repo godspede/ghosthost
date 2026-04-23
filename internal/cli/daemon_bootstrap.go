@@ -45,7 +45,7 @@ func EnsureDaemon(dataDir, cfgPath string) (*Client, error) {
 	if err := daemon.SpawnDetached(self, extraArgs...); err != nil {
 		return nil, fmt.Errorf("spawn daemon: %w", err)
 	}
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(10 * time.Second)
 	for {
 		if c, err := tryConnect(lockPath); err == nil {
 			return c, nil
