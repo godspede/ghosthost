@@ -94,13 +94,19 @@ func TestSmoke_ShareAndFetch(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("share failed: %v", err)
 	}
-	var p struct {
+	// As of PR2, `--json share` emits a JSON array (one element per file)
+	// even for a single-file share.
+	var payloads []struct {
 		URL string `json:"url"`
 		ID  string `json:"id"`
 	}
-	if err := json.Unmarshal(out.Bytes(), &p); err != nil {
+	if err := json.Unmarshal(out.Bytes(), &payloads); err != nil {
 		t.Fatalf("parse share output: %v: %q", err, out.String())
 	}
+	if len(payloads) != 1 {
+		t.Fatalf("expected 1 share payload, got %d: %q", len(payloads), out.String())
+	}
+	p := payloads[0]
 
 	// fetch
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
