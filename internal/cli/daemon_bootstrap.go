@@ -7,10 +7,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/godspede/ghosthost/internal/daemon"
 )
+
+func isTestBinary(path string) bool {
+	base := strings.ToLower(filepath.Base(path))
+	return strings.HasSuffix(base, ".test") || strings.HasSuffix(base, ".test.exe")
+}
 
 // EnsureDaemon makes sure the daemon is running and returns an admin
 // client wired to it. If the daemon is not running, spawns it (forwarding
@@ -24,6 +30,13 @@ func EnsureDaemon(dataDir, cfgPath string) (*Client, error) {
 	self, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("locate self: %w", err)
+	}
+	// Refuse to daemonize a test binary. Under `go test`, os.Executable()
+	// points at the test runner (e.g. cli.test.exe); spawning it detached
+	// leaks a zombie that holds open handles on its t.TempDir trees, which
+	// on Windows blocks cleanup and spams %TEMP%\Test<Name>* forever.
+	if isTestBinary(self) {
+		return nil, fmt.Errorf("refusing to spawn daemon from test binary %q", self)
 	}
 	var extraArgs []string
 	if cfgPath != "" {
