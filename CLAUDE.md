@@ -60,7 +60,7 @@ bind          = "tailscale"
 port          = 8750
 admin_port    = 8751
 data_dir      = "C:\\Users\\you\\AppData\\Local\\ghosthost"
-default_ttl   = "24h"
+default_ttl   = "2h"
 idle_shutdown = "30m"
 ```
 
@@ -100,7 +100,9 @@ ghosthost stop              # daemon exits; next command auto-spawns it
 
 ## 7. Install the Claude skill
 
-Copy `skills/ghosthost/SKILL.md` into the Claude skills directory:
+The skill is installed **per-user** (globally), so it is available in every Claude session on this machine regardless of which workspace or project is open.
+
+Copy `skills/ghosthost/SKILL.md` into the user-level Claude skills directory:
 
 ```bash
 # macOS / Linux
@@ -108,12 +110,48 @@ mkdir -p ~/.claude/skills/ghosthost
 cp skills/ghosthost/SKILL.md ~/.claude/skills/ghosthost/SKILL.md
 ```
 
-```text
-# Windows
-%USERPROFILE%\.claude\skills\ghosthost\SKILL.md
+```powershell
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills\ghosthost"
+Copy-Item skills\ghosthost\SKILL.md "$env:USERPROFILE\.claude\skills\ghosthost\SKILL.md"
 ```
 
-Restart Claude. From then on, Claude will invoke `ghosthost share` on its own when you ask it to show or host a local file.
+**Status on this machine:** already installed at `%USERPROFILE%\.claude\skills\ghosthost\SKILL.md`.
+
+Restart Claude after copying.
+
+### When the skill fires
+
+The skill is **scoped to Claude Code remote-control (bridge) sessions**
+— specifically, sessions where the environment variable
+`CLAUDE_CODE_ENVIRONMENT_KIND` equals `bridge`. That is the variable
+Claude Code sets when you launch it via `claude remote-control`. The
+rationale is simple: `ghosthost` only earns its keep when the user is
+*not* sitting at the host with a normal file manager. In a local
+desktop or plain-CLI session, generating a tokenized URL for a file the
+user can already double-click is friction, not magic.
+
+In a **bridge session**, Claude reaches for `ghosthost share` on its
+own when you ask to see, host, or share a local file.
+
+In a **non-bridge session** (desktop, CLI, or anything else), Claude
+leaves the skill alone *unless one of these explicit overrides applies*:
+
+1. **You name the tool.** "Use ghosthost", "give me a ghosthost link",
+   "share with ghosthost".
+2. **You ask for a network-accessible URL.** "Give me a link my phone
+   on this wifi can hit", "share it on the LAN / VPN / tailnet", "URL
+   I can paste in Slack", "link I can send my coworker", "shareable
+   link for the team". The trigger is *network-link intent*, regardless
+   of who the consumer is.
+3. **You're smoke-testing the install.** Running §8's hello-world,
+   verifying the daemon, or working inside the ghosthost repo at
+   first-run setup.
+
+Conversational cues like "I'm on my phone" or "send it to me" are
+**not** overrides on their own — local users say those things too. If
+you really do want a URL in a desktop session, the cleanest path is to
+say "use ghosthost" or describe the network-link use case explicitly.
 
 ## 8. Hello-world proof-of-install
 
@@ -186,5 +224,5 @@ For operators not using Tailscale:
 - [ ] `ghosthost list` shows the share; `ghosthost history` shows the creation event.
 - [ ] `ghosthost revoke <id>` makes the URL return `404`.
 - [ ] `ghosthost stop` exits cleanly; next `ghosthost status` auto-spawns the daemon.
-- [ ] `skills/ghosthost/SKILL.md` is installed in the Claude skills directory and Claude has been restarted.
+- [ ] `skills/ghosthost/SKILL.md` is installed **per-user** at `%USERPROFILE%\.claude\skills\ghosthost\SKILL.md` (macOS/Linux: `~/.claude/skills/ghosthost/SKILL.md`) and Claude has been restarted.
 - [ ] **Hello-world proof-of-install (§8):** a short text file is shared, the URL opens in a browser on another device and shows the file contents, and the `LOCAL_PATH` + `URL` pair has been recorded.

@@ -36,7 +36,7 @@ func cmdShare(ctx context.Context, args []string, o *globalOpts) int {
 	anon := fs.Bool("anon", false, "replace each display-name with a random slug preserving extension")
 	yes := fs.Bool("yes", false, fmt.Sprintf("confirm batches larger than %d files", shareMaxBatch))
 
-	const usageLine = "usage: share <path>... [--ttl 24h] [--as name] [--anon] [--verbose] [--yes]"
+	const usageLine = "usage: share <path>... [--ttl 2h] [--as name] [--anon] [--verbose] [--yes]"
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(o.stderr, usageLine)
 		return ExitUsage
