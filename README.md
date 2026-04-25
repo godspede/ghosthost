@@ -1,8 +1,14 @@
 # ghosthost
 
-**A one-line command that turns any local file into a temporary, tokenized URL — so the coding agent on your desktop can hand your phone a clickable link to the thing it just made.**
+A small command-line tool that creates a temporary, tokenized HTTP URL
+for a local file, so a long-running process or a coding agent on one
+machine can hand a clickable link to a phone, tablet, or another
+machine.
 
-You're driving Claude on your home box through a `remote-control` Claude session from your phone or work PC. It just rendered a video, generated a plot, finished a model, or dumped an ML output to disk. The result is sitting on a drive you can't see from here.
+The motivating case: you're driving Claude on your home machine through
+a `remote-control` session from your phone or another computer. Claude
+has just rendered a video, generated a plot, finished a model, or dumped
+an output to disk. You want to view it from the device you're on now.
 
 ```text
 you: let me see it
@@ -10,7 +16,9 @@ claude: ghosthost share ./renders/out.mp4
         http://homepc.tail-4a9c2e.ts.net:8750/t/8f2b1c04e7a6/out.mp4
 ```
 
-You tap the link on your phone. The video plays in the browser. Twenty-four hours later it stops working.
+The link opens in any browser that can reach the host on the configured
+network (Tailscale by default), and stops working when the share's TTL
+expires — two hours after creation, by default.
 
 <p align="center">
   <img src="docs/demo-phone.gif" alt="Opening a shared ghosthost link in a browser on Android" width="240">
@@ -18,9 +26,18 @@ You tap the link on your phone. The video plays in the browser. Twenty-four hour
   <sub>Full-quality mp4: <a href="docs/demo-phone.mp4">docs/demo-phone.mp4</a></sub>
 </p>
 
-That's the whole product. A single Go binary with a CLI in front of a background HTTP daemon. Shares carry 128-bit tokens, auto-expire, and the daemon binds to your Tailscale interface by default so the URLs only exist on your tailnet. Ships with a Claude skill (`skills/ghosthost/SKILL.md`) so the agent reaches for `ghosthost share` on its own when you ask to see a file.
+The implementation is a single Go binary: a CLI in front of a background
+HTTP daemon. Shares carry 128-bit tokens, auto-expire, and the daemon
+binds to your Tailscale interface by default so URLs stay scoped to your
+tailnet. A Claude skill (`skills/ghosthost/SKILL.md`) is included; it's
+scoped to Claude Code remote-control sessions, where Claude runs
+`ghosthost share` automatically when you ask to see a file. In other
+session kinds the skill stays out of the way unless you ask for a
+network-accessible link explicitly.
 
-Status: v0.1-ish. Windows and Linux run the full test suite on every CI push (including the end-to-end smoke test); macOS cross-compiles cleanly but isn't currently exercised in CI.
+Status: v0.1. Windows and Linux run the full test suite on every CI
+push, including an end-to-end smoke test. macOS cross-compiles cleanly
+but is not currently exercised in CI.
 
 ## What it serves
 
@@ -34,10 +51,10 @@ Append `?dl=1` to any URL to force `Content-Disposition: attachment` and skip th
 
 ## Common use cases
 
-- A coding LLM just generated a video, plot, PNG, or scraped a page, and you want to eyeball the result without shuffling files.
-- A long ML job on your GPU box produced a Stable Diffusion output, training-loss plot, generated audio clip, or checkpoint sample.
-- A browser-automation or scraping agent dropped screenshots, PDFs, or CSVs on disk.
-- You're on your phone, the file is on your desktop, and scp / a throwaway web server / a Dropbox round-trip is overkill.
+- A coding agent has generated a video, plot, image, or scraped page on a remote machine and you want to view the output without copying files around.
+- A long-running ML job has produced a generated image, training-loss plot, audio clip, or checkpoint sample on your GPU machine.
+- A browser-automation or scraping job has dropped screenshots, PDFs, or CSVs on disk.
+- The file is on your desktop, you're on your phone, and you'd rather not set up scp, a throwaway HTTP server, or a Dropbox round-trip.
 
 ## Claude Code setup
 
@@ -96,7 +113,7 @@ default_ttl   = "2h"
 idle_shutdown = "30m"
 ```
 
-On first run, `ghosthost` shells out to `tailscale status --json` and pre-fills `host` with your MagicDNS name when available. `bind = "tailscale"` fails fast at daemon start with a clear error if the `tailscale` CLI is missing or not logged in. `bind = "0.0.0.0"` exposes the server on every interface the host joins — the daemon logs a loud warning when that's set.
+On first run, `ghosthost` shells out to `tailscale status --json` and pre-fills `host` with your MagicDNS name when available. `bind = "tailscale"` fails fast at daemon start with a clear error if the `tailscale` CLI is missing or not logged in. `bind = "0.0.0.0"` exposes the server on every interface the host joins; the daemon logs a warning at startup whenever that's set.
 
 ### HTTPS (optional)
 
@@ -177,7 +194,7 @@ Expired, revoked, or unknown shares exit with code 5 and a "not found" message �
 
 ## Transport options
 
-Tailscale is what `ghosthost` is designed around, but the URL the daemon prints is just `https://<host>:<port>/s/<token>/<name>` — nothing about the binary is hard-wired to Tailscale. Any transport that lands a reachable `host` at the daemon's listening interface works: your LAN IP, another VPN (WireGuard, Nebula, ZeroTier), or a public reverse proxy / tunnel terminating TLS in front of the daemon. Set `host` and `bind` accordingly. See [CLAUDE.md](CLAUDE.md#alternative-transports) for concrete recipes.
+Tailscale is the default transport, but nothing about the binary is hard-wired to it. The URL the daemon prints is `https://<host>:<port>/s/<token>/<name>`, and any transport that lands a reachable `host` at the daemon's listening interface works: your LAN IP, another VPN (WireGuard, Nebula, ZeroTier), or a public reverse proxy or tunnel terminating TLS in front of the daemon. Set `host` and `bind` accordingly. See [CLAUDE.md](CLAUDE.md#alternative-transports) for concrete recipes.
 
 ## Security
 
@@ -190,7 +207,7 @@ See [SECURITY.md](SECURITY.md) for the full threat model.
 
 ## Platform support
 
-Windows is the primary target. All the Windows-specific hardening lives in-tree: `LockFileEx` on the daemon lockfile, reparse-point rejection when resolving share paths, detached-process flags on daemon spawn. Linux and macOS binaries build cleanly and the core flows work; cross-platform parity is still shaking out for v0.1.
+Windows is the primary target. All the Windows-specific hardening lives in-tree: `LockFileEx` on the daemon lockfile, reparse-point rejection when resolving share paths, detached-process flags on daemon spawn. Linux and macOS binaries build cleanly and the core flows work; full cross-platform parity is still in progress for v0.1.
 
 ## JSON output stability
 
