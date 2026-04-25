@@ -54,7 +54,18 @@ cp skills/ghosthost/SKILL.md ~/.claude/skills/ghosthost/SKILL.md
 %USERPROFILE%\.claude\skills\ghosthost\SKILL.md
 ```
 
-Once installed, Claude will invoke `ghosthost share` on its own when you ask it to show or host a local artifact. See [CLAUDE.md](CLAUDE.md) for the full end-to-end setup and smoke-test checklist.
+The skill is **scoped to Claude Code remote-control (bridge) sessions**
+— the kind launched via `claude remote-control`, where Claude detects
+`CLAUDE_CODE_ENVIRONMENT_KIND=bridge` in its environment. In bridge
+sessions, Claude reaches for `ghosthost share` on its own when you ask
+to see a file. In plain desktop / CLI sessions Claude leaves the skill
+alone unless you (a) explicitly name `ghosthost`, (b) explicitly ask
+for a network-accessible URL (e.g., "give me a link my phone on this
+wifi can hit", "share it on the tailnet", "URL I can paste in Slack"),
+or (c) are smoke-testing the install. This keeps the skill from firing
+on unrelated file-path mentions when you're sitting at the host.
+
+See [CLAUDE.md](CLAUDE.md) for the full end-to-end setup and smoke-test checklist.
 
 ## Install
 

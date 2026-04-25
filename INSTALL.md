@@ -41,7 +41,7 @@ Once you've picked a transport, the flow is the same:
    ```
    You get a URL, an `id`, and an expiry. Open the URL on any device that can reach `host`:`port`.
 4. **(Optional) HTTPS.** Point `tls_cert` and `tls_key` in the config at PEM files and `ghosthost share` starts returning `https://` URLs. Any cert/key pair works; Tailscale users can produce a browser-trusted pair in one command with `tailscale cert <your-magicdns-name>`.
-5. **(Optional) Claude skill.** If you drive `ghosthost` from Claude Code, copy `skills/ghosthost/SKILL.md` into the Claude skills directory so the agent reaches for `ghosthost share` on its own. Concrete per-OS commands live in [CLAUDE.md](CLAUDE.md).
+5. **(Optional) Claude skill.** If you drive `ghosthost` from Claude Code, copy `skills/ghosthost/SKILL.md` into the Claude skills directory so the agent reaches for `ghosthost share` on its own. The skill is scoped to **Claude Code remote-control (bridge) sessions** — it fires automatically when Claude is launched via `claude remote-control` (detected via `CLAUDE_CODE_ENVIRONMENT_KIND=bridge`). In a plain desktop/CLI session it stays out of the way unless you explicitly name `ghosthost`, ask for a network-accessible URL, or are smoke-testing the install. Concrete per-OS commands live in [CLAUDE.md](CLAUDE.md).
 
 Full end-to-end setup, troubleshooting, and validation checkboxes: see [CLAUDE.md](CLAUDE.md).
 

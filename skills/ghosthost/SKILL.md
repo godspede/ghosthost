@@ -1,17 +1,59 @@
 ---
 name: ghosthost
-description: Use when you have produced or identified a local file (video, image, plot, downloaded clip) that the user would benefit from viewing remotely on a phone or another device. Generates a temporary HTTP URL via ghosthost.
+description: Use when the user wants a network-accessible URL for a local file (video, image, plot, downloaded clip). Primary case is Claude Code remote-control (bridge) sessions, where `CLAUDE_CODE_ENVIRONMENT_KIND=bridge` and the user is viewing remotely. Also use when the user explicitly asks for a link reachable off this machine (LAN, wifi, VPN, tailnet, public, or for a coworker / Slack / PR), names ghosthost by name, or is smoke-testing the install. Skip in plain desktop/CLI sessions when the file path is just context for an unrelated task.
 ---
 
 # ghosthost skill
 
-Use this skill when the user has asked to see a local file on another
-device, or when you have produced a file the user cannot easily view
-in-terminal (video, image, rendered plot, downloaded media).
+`ghosthost` produces a temporary HTTP URL pointing at a local file. The
+URL is only useful when the file needs to be reachable from *somewhere
+off this machine* — another device, another person, or another network.
+If the user is sitting at the host with a normal file manager, a URL is
+pure friction.
+
+## Precondition: gate on session kind, then check for overrides
+
+**Step 1 — check the session kind.** Run:
+
+    echo "$CLAUDE_CODE_ENVIRONMENT_KIND"
+
+- Output is `bridge` → this is a Claude Code remote-control session. The
+  user is driving Claude from another device. Proceed to "When to use"
+  below — `ghosthost` is exactly the right tool.
+- Output is anything else (`desktop`, `cli`, empty, etc.) → **do not
+  invoke `ghosthost share` by default.** Continue to Step 2.
+
+**Step 2 — check for an explicit override.** In a non-bridge session,
+only invoke `ghosthost share` if at least one of these is unambiguously
+true in the user's request:
+
+1. **Tool named explicitly.** The user said `ghosthost`, "use ghosthost",
+   "give me a ghosthost link", "share this with ghosthost", or similar.
+   They know the tool and asked for it by name.
+2. **Explicit network-accessible-URL request.** The user asked for a
+   link that reaches off this machine — phrasings like "give me a link
+   I can hit from my phone on this wifi", "share it on the LAN / VPN /
+   tailnet", "make this reachable from my tablet", "URL I can paste in
+   Slack", "link I can send my coworker", "shareable link for the team",
+   "URL anyone on the tailnet can see". The user is asking for a network
+   artifact, not for you to read/edit/embed the file.
+3. **Smoke-testing or install verification.** The user is verifying that
+   `ghosthost` itself works — running the hello-world proof from
+   CLAUDE.md §8, "test that ghosthost is installed", "verify the
+   daemon", or you are operating inside the ghosthost repo during
+   first-run setup.
+
+If none of (1)–(3) apply, **do not invoke `ghosthost share`.** Tell the
+user the file is local and give them the absolute path so they can open
+it directly. Do not infer remote-control from conversational cues alone
+("I'm on my phone", "send it to me", "show it to me") — users say that
+in local sessions too, and the env var is the authoritative signal for
+the bridge case. The overrides above are the only carve-outs.
 
 ## When to use
 
-Invoke `ghosthost share` ONLY when the user has issued an explicit request to share, host, or view a file on another device. Triggers:
+Once the precondition is satisfied (bridge session, or one of the
+overrides above), invoke `ghosthost share` when:
 
 - **Explicit verb + file or pronoun referring to a file.** "share this", "host it", "serve this file", "put this somewhere I can see it", "let me see it on my phone", "show me that video", "can you get that onto my phone".
 - **Clear viewing intent.** "I want to open this on my phone", "need this on my laptop in the other room", "open it on my tablet".
