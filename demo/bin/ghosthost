@@ -15,7 +15,7 @@ expires_at: 2026-04-20T14:32:08Z
 EOF
     ;;
   *)
-    echo "usage: ghosthost share <path> [--ttl 24h] [--as name]" >&2
+    echo "usage: ghosthost share <path> [--ttl 2h] [--as name]" >&2
     exit 2
     ;;
 esac

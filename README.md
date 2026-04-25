@@ -92,7 +92,7 @@ bind          = "tailscale"   # or an explicit IP, or "0.0.0.0"
 port          = 8750
 admin_port    = 8751
 data_dir      = "C:\\Users\\you\\AppData\\Local\\ghosthost"
-default_ttl   = "24h"
+default_ttl   = "2h"
 idle_shutdown = "30m"
 ```
 
@@ -117,7 +117,7 @@ The admin API on `127.0.0.1` stays plain HTTP regardless; TLS adds nothing on a 
 
 | Command | What it does |
 |---|---|
-| `ghosthost share <path>... [--ttl 24h] [--as name] [--anon] [--verbose] [--yes]` | Create one or more shares, print one URL per line. Pass `--verbose` for the full id + expiry block. |
+| `ghosthost share <path>... [--ttl 2h] [--as name] [--anon] [--verbose] [--yes]` | Create one or more shares, print one URL per line. Pass `--verbose` for the full id + expiry block. |
 | `ghosthost info <arg>` | Look up an active share by full URL, URL path, bare token, or bare id. |
 | `ghosthost list` | Active shares. |
 | `ghosthost history [--limit N]` | All historical share events. |
@@ -170,7 +170,7 @@ URL:     http://homepc.tail-4a9c2e.ts.net:8750/t/k3n.../hello.txt
 ID:      8f2b1c04
 Src:     /home/you/hello.txt
 Created: 2026-04-21T13:14:15Z
-Expires: 2026-04-22T13:14:15Z (23h59m59s from now)
+Expires: 2026-04-21T15:14:15Z (1h59m59s from now)
 ```
 
 Expired, revoked, or unknown shares exit with code 5 and a "not found" message — no information about which tokens ever existed is disclosed.
@@ -183,7 +183,7 @@ Tailscale is what `ghosthost` is designed around, but the URL the daemon prints 
 
 - Tokens are 128 bits from `crypto/rand`, compared in constant time. Only their SHA-256 digests are written to disk (`history.jsonl`).
 - The admin API is bound to `127.0.0.1` only and authenticated by a per-daemon bearer secret stored in an ACL-restricted lockfile.
-- Shares expire after `default_ttl` (24h default); revocation is immediate.
+- Shares expire after `default_ttl` (2h default); revocation is immediate.
 - Tokens in the URL are the only authentication on the data-plane. Public exposure is at your own risk.
 
 See [SECURITY.md](SECURITY.md) for the full threat model.

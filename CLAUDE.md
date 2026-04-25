@@ -60,7 +60,7 @@ bind          = "tailscale"
 port          = 8750
 admin_port    = 8751
 data_dir      = "C:\\Users\\you\\AppData\\Local\\ghosthost"
-default_ttl   = "24h"
+default_ttl   = "2h"
 idle_shutdown = "30m"
 ```
 

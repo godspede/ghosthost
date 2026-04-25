@@ -78,7 +78,7 @@ Do **not** invoke `ghosthost share` when:
 
 1. Run:
 
-       ghosthost --json share <absolute-path>... [--ttl 24h] [--as <name>] [--anon]
+       ghosthost --json share <absolute-path>... [--ttl 2h] [--as <name>] [--anon]
 
 2. Parse the JSON response. `--json` always emits a JSON array — one element per file. Required fields per element:
 

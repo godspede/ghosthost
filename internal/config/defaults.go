@@ -12,7 +12,7 @@ const (
 	DefaultPort         = 8750
 	DefaultAdminPort    = 8751
 	DefaultBind         = "tailscale"
-	DefaultTTL          = 24 * time.Hour
+	DefaultTTL          = 2 * time.Hour
 	DefaultIdleShutdown = 30 * time.Minute
 )
 
@@ -72,7 +72,7 @@ bind = %q
 port = %d
 admin_port = %d
 data_dir = %q
-default_ttl = "24h"
+default_ttl = "2h"
 idle_shutdown = "30m"
 
 # Optional HTTPS. If both are set and readable, the public server uses TLS
